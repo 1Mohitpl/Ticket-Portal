@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft, CheckCircle, Clock, Mail, MessageSquare, RefreshCw } from 'lucide-react'
+import { ArrowLeft, CheckCircle, Clock, Mail, MessageSquare } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
+import { apiFetch } from '../../lib/api'
 import { supabase } from '../../lib/supabase'
 import type { TicketEvent } from '../../types'
 
@@ -23,6 +24,8 @@ type TicketDetail = {
   devices: { type: string; serial_number: string; status: string; status_since: string } | null
   si_user: { id: string; name: string; email: string } | null
   resolver: { name: string; email: string } | null
+  ticket_events: TimelineItem[]
+  email_outbox: EmailItem[]
 }
 type TimelineItem = TicketEvent & { actor: { name: string; email: string } | null }
 type EmailItem = { id: string; subject: string; status: string; sent_at: string | null; created_at: string; error: string | null }
@@ -38,35 +41,8 @@ export default function TicketDetailPage() {
     queryKey: ['ticket', ticketId],
     enabled: Boolean(ticketId) && !authLoading,
     queryFn: async () => {
-      const { data, error } = await supabase.from('tickets').select(`
-        *, branches:branches!tickets_branch_id_fkey(name, code, zones:zones!branches_zone_id_fkey(name, nbgs:nbgs!zones_nbg_id_fkey(name))),
-        devices:devices!tickets_device_id_fkey(type, serial_number, status, status_since),
-        si_user:profiles!tickets_si_user_id_fkey(id, name, email), resolver:profiles!tickets_resolved_by_fkey(name, email)
-      `).eq('id', ticketId!).maybeSingle()
-      if (error) throw error
-      if (!data) throw new Error('Ticket not found or you do not have access to it.')
-      return data as unknown as TicketDetail
-    },
-  })
-  const eventsQuery = useQuery({
-    queryKey: ['ticketEvents', ticketId],
-    enabled: Boolean(ticketId) && !authLoading,
-    queryFn: async () => {
-      const { data, error } = await supabase.from('ticket_events')
-        .select('id, ticket_id, event_type, actor_id, actor_role, note, created_at, actor:profiles!ticket_events_actor_id_fkey(name, email)')
-        .eq('ticket_id', ticketId!).order('created_at', { ascending: true })
-      if (error) throw error
-      return (data ?? []) as unknown as TimelineItem[]
-    },
-  })
-  const emailsQuery = useQuery({
-    queryKey: ['ticketEmails', ticketId],
-    enabled: Boolean(ticketId) && !authLoading,
-    queryFn: async () => {
-      const { data, error } = await supabase.from('email_outbox')
-        .select('id, subject, status, sent_at, created_at, error').eq('ticket_id', ticketId!).order('created_at', { ascending: true })
-      if (error) throw error
-      return (data ?? []) as EmailItem[]
+      const { data } = await apiFetch<{ data: TicketDetail }>(`/tickets/${ticketId}`)
+      return data
     },
   })
 
@@ -78,7 +54,7 @@ export default function TicketDetailPage() {
     onSuccess: async () => {
       setNote('')
       setActionError('')
-      await queryClient.invalidateQueries({ queryKey: ['ticketEvents', ticketId] })
+      await queryClient.invalidateQueries({ queryKey: ['ticket', ticketId] })
     },
     onError: (error: Error) => setActionError(error.message),
   })
@@ -92,10 +68,9 @@ export default function TicketDetailPage() {
       setActionError('')
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['ticket', ticketId] }),
-        queryClient.invalidateQueries({ queryKey: ['ticketEvents', ticketId] }),
         queryClient.invalidateQueries({ queryKey: ['tickets'] }),
-        queryClient.invalidateQueries({ queryKey: ['dashboardCounts'] }),
-        queryClient.invalidateQueries({ queryKey: ['dashboardTickets'] }),
+        queryClient.invalidateQueries({ queryKey: ['dashboardStats'] }),
+        queryClient.invalidateQueries({ queryKey: ['dashboardBreakdown'] }),
       ])
     },
     onError: (error: Error) => setActionError(error.message),
@@ -108,8 +83,8 @@ export default function TicketDetailPage() {
   const canManage = ticket.status === 'open' && (profile?.role === 'head_office' || (profile?.role === 'si' && ticket.si_user_id === profile.id))
   const busy = addNote.isPending || resolve.isPending
   const items = [
-    ...(eventsQuery.data ?? []).map((event) => ({ id: event.id, kind: 'event' as const, at: event.created_at, event })),
-    ...(emailsQuery.data ?? []).map((email) => ({ id: email.id, kind: 'email' as const, at: email.sent_at ?? email.created_at, email })),
+    ...ticket.ticket_events.map((event) => ({ id: event.id, kind: 'event' as const, at: event.created_at, event })),
+    ...ticket.email_outbox.map((email) => ({ id: email.id, kind: 'email' as const, at: email.sent_at ?? email.created_at, email })),
   ].sort((a, b) => a.at.localeCompare(b.at))
 
   return (
@@ -143,7 +118,7 @@ export default function TicketDetailPage() {
 
       <section className="rounded-xl border border-[#e5e4e7] bg-white p-5">
         <h3 className="mb-4 font-semibold">Activity timeline</h3>
-        {(eventsQuery.isLoading || emailsQuery.isLoading) ? <p role="status" className="text-sm text-[#6b6375]">Loading activity…</p> : (eventsQuery.error || emailsQuery.error) ? <div role="alert" className="space-y-2 text-sm text-[#dc2626]"><p>Could not load all ticket activity: {eventsQuery.error?.message ?? emailsQuery.error?.message}</p><button onClick={() => { void eventsQuery.refetch(); void emailsQuery.refetch() }} className="inline-flex items-center gap-1 rounded border border-[#e5e4e7] px-3 py-1 text-[#08060d]"><RefreshCw className="h-3 w-3" />Retry</button></div> : items.length === 0 ? <p className="text-sm text-[#6b6375]">No activity has been recorded yet.</p> : <ol className="space-y-4">{items.map((item) => item.kind === 'event' ? <li key={item.id} className="flex gap-3"><Clock className="mt-0.5 h-4 w-4 shrink-0 text-[#aa3bff]" /><div className="min-w-0"><p className="font-medium">{eventTitle(item.event.event_type)}</p><p className="text-xs text-[#6b6375]">{formatDate(item.event.created_at)} · {item.event.actor?.name ?? item.event.actor_role?.replace('_', ' ') ?? 'System'}</p>{item.event.note && <p className="mt-1 whitespace-pre-wrap text-sm">{item.event.note}</p>}</div></li> : <li key={item.id} className="flex gap-3"><Mail className="mt-0.5 h-4 w-4 shrink-0 text-[#6b6375]" /><div><p className="font-medium">Escalation email {item.email.status}</p><p className="text-xs text-[#6b6375]">{formatDate(item.at)} · {item.email.subject}</p>{item.email.error && <p className="mt-1 text-sm text-[#dc2626]">{item.email.error}</p>}</div></li>)}</ol>}
+        {items.length === 0 ? <p className="text-sm text-[#6b6375]">No activity has been recorded yet.</p> : <ol className="space-y-4">{items.map((item) => item.kind === 'event' ? <li key={item.id} className="flex gap-3"><Clock className="mt-0.5 h-4 w-4 shrink-0 text-[#aa3bff]" /><div className="min-w-0"><p className="font-medium">{eventTitle(item.event.event_type)}</p><p className="text-xs text-[#6b6375]">{formatDate(item.event.created_at)} · {item.event.actor?.name ?? item.event.actor_role?.replace('_', ' ') ?? 'System'}</p>{item.event.note && <p className="mt-1 whitespace-pre-wrap text-sm">{item.event.note}</p>}</div></li> : <li key={item.id} className="flex gap-3"><Mail className="mt-0.5 h-4 w-4 shrink-0 text-[#6b6375]" /><div><p className="font-medium">Escalation email {item.email.status}</p><p className="text-xs text-[#6b6375]">{formatDate(item.at)} · {item.email.subject}</p>{item.email.error && <p className="mt-1 text-sm text-[#dc2626]">{item.email.error}</p>}</div></li>)}</ol>}
       </section>
     </div>
   )

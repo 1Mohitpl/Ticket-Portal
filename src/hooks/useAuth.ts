@@ -1,7 +1,14 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { apiFetch } from '../lib/api'
 import type { Profile, UserRole } from '../types'
+
+interface LoginResponse {
+  access_token: string
+  refresh_token: string
+  user: Profile
+}
 
 interface AuthState {
   user: { id: string; email?: string | null } | null
@@ -22,6 +29,15 @@ export function useAuth(): AuthState {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
   const navigate = useNavigate()
+
+  const loadProfile = useCallback(async (id: string) => {
+    try {
+      const { user: loaded } = await apiFetch<{ user: Profile }>('/auth/me')
+      setProfile(loaded?.id === id ? loaded : null)
+    } catch {
+      setProfile(null)
+    }
+  }, [])
 
   useEffect(() => {
     let mounted = true
@@ -52,27 +68,46 @@ export function useAuth(): AuthState {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!mounted) return
-      void syncSession(session?.user ?? null)
+      // Defer: calling auth methods (getSession) inside this callback can deadlock.
+      setTimeout(() => {
+        if (mounted) void syncSession(session?.user ?? null)
+      }, 0)
     })
 
     return () => {
       mounted = false
       subscription.unsubscribe()
     }
-  }, [])
-
-  const loadProfile = useCallback(async (id: string) => {
-    const { data } = await supabase.from('profiles').select('*').eq('id', id).maybeSingle()
-    setProfile((data ?? null) as Profile | null)
-  }, [])
+  }, [loadProfile])
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    return { error }
+    try {
+      const session = await apiFetch<LoginResponse>('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+        auth: false,
+      })
+      const { error } = await supabase.auth.setSession({
+        access_token: session.access_token,
+        refresh_token: session.refresh_token,
+      })
+      return { error }
+    } catch (error) {
+      return { error }
+    }
   }
 
   const signOut = async () => {
-    await supabase.auth.signOut()
+    try {
+      await apiFetch('/auth/logout', { method: 'POST' })
+    } catch {
+      // Best effort: clear the local session even if the API is unreachable.
+    }
+    try {
+      await supabase.auth.signOut()
+    } catch {
+      // Local state is cleared below regardless.
+    }
     setUser(null)
     setProfile(null)
     navigate('/login', { replace: true })
