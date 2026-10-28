@@ -98,9 +98,9 @@ export default function TicketsPage() {
 
   if (ticketsQuery.isLoading) return <p className="p-4" role="status">Loading tickets…</p>
   if (ticketsQuery.error) return (
-    <div className="space-y-3 p-4" role="alert">
-      <p className="text-[#dc2626]">Could not load tickets: {ticketsQuery.error.message}</p>
-      <button onClick={() => void ticketsQuery.refetch()} className="rounded border border-[#e5e4e7] px-3 py-2 text-sm">Try again</button>
+    <div className="space-y-3 rounded-lg border-l-4 border-[#2c2c2e] border-l-[#ff453a] bg-[#3a1c1c] p-4" role="alert">
+      <p className="text-[#ff453a]">Could not load tickets: {ticketsQuery.error.message}</p>
+      <button onClick={() => void ticketsQuery.refetch()} className="rounded border border-[#2c2c2e] px-3 py-2 text-sm">Try again</button>
     </div>
   )
 
@@ -108,8 +108,8 @@ export default function TicketsPage() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-xl font-bold">Tickets</h2>
-          <p className="text-sm text-[#6b6375]">{total} ticket{total === 1 ? '' : 's'}</p>
+          <h2 className="text-2xl font-semibold">Tickets</h2>
+          <p className="text-sm text-[#98989d]">{total} ticket{total === 1 ? '' : 's'}</p>
         </div>
         <div className="flex flex-wrap gap-2" aria-label="Ticket presets">
           {[
@@ -118,83 +118,83 @@ export default function TicketsPage() {
           ].map(([value, label]) => (
             <button key={value} onClick={() => updateParam('filter', value === 'all' ? '' : value)}
               aria-pressed={filter === value}
-              className={`rounded border px-3 py-1.5 text-sm ${filter === value ? 'border-[#aa3bff] bg-[#aa3bff] text-white' : 'border-[#e5e4e7]'}`}>
+              className={`rounded border px-3 py-1.5 text-sm ${filter === value ? 'border-[#00e5ff] bg-[#00e5ff] text-[#121212]' : 'border-[#2c2c2e]'}`}>
               {label}
             </button>
           ))}
         </div>
       </div>
 
-      <section className="grid grid-cols-1 gap-3 rounded-xl border border-[#e5e4e7] bg-white p-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Ticket filters">
-        <label className="text-xs text-[#6b6375]">Status
-          <select value={status} onChange={(event) => updateParam('status', event.target.value)} className="mt-1 block w-full rounded border border-[#e5e4e7] bg-white px-3 py-2 text-sm text-[#08060d]">
+      <section className="grid grid-cols-1 gap-3 rounded-2xl border border-[#2c2c2e] bg-[#1e1e1e] p-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Ticket filters">
+        <label className="text-xs text-[#98989d]">Status
+          <select value={status} onChange={(event) => updateParam('status', event.target.value)} className="mt-1 block w-full rounded border border-[#2c2c2e] bg-[#1e1e1e] px-3 py-2 text-sm text-[#ffffff]">
             <option value="">Any status</option><option value="open">Open</option><option value="resolved">Resolved</option>
           </select>
         </label>
-        <label className="text-xs text-[#6b6375]">Escalation level
-          <select value={level} onChange={(event) => updateParam('level', event.target.value)} className="mt-1 block w-full rounded border border-[#e5e4e7] bg-white px-3 py-2 text-sm text-[#08060d]">
+        <label className="text-xs text-[#98989d]">Escalation level
+          <select value={level} onChange={(event) => updateParam('level', event.target.value)} className="mt-1 block w-full rounded border border-[#2c2c2e] bg-[#1e1e1e] px-3 py-2 text-sm text-[#ffffff]">
             <option value="">Any level</option><option value="0">Not escalated</option><option value="1">Level 1</option><option value="2">Level 2</option><option value="3">Level 3</option>
           </select>
         </label>
-        <label className="text-xs text-[#6b6375]">Branch
-          <select value={branch} onChange={(event) => updateParam('branch', event.target.value)} className="mt-1 block w-full rounded border border-[#e5e4e7] bg-white px-3 py-2 text-sm text-[#08060d]">
+        <label className="text-xs text-[#98989d]">Branch
+          <select value={branch} onChange={(event) => updateParam('branch', event.target.value)} className="mt-1 block w-full rounded border border-[#2c2c2e] bg-[#1e1e1e] px-3 py-2 text-sm text-[#ffffff]">
             <option value="">All visible branches</option>
             {(branchesQuery.data ?? []).map((item) => <option key={item.id} value={item.id}>{item.name} ({item.code})</option>)}
           </select>
         </label>
-        <label className="text-xs text-[#6b6375]">Device serial
-          <input value={device} onChange={(event) => updateParam('device', event.target.value)} placeholder="Search serial number" className="mt-1 block w-full rounded border border-[#e5e4e7] px-3 py-2 text-sm text-[#08060d]" />
+        <label className="text-xs text-[#98989d]">Device serial
+          <input value={device} onChange={(event) => updateParam('device', event.target.value)} placeholder="Search serial number" className="mt-1 block w-full rounded border border-[#2c2c2e] px-3 py-2 text-sm text-[#ffffff]" />
         </label>
-        <label className="text-xs text-[#6b6375]">Created from
-          <input type="date" value={from} onChange={(event) => updateParam('from', event.target.value)} className="mt-1 block w-full rounded border border-[#e5e4e7] px-3 py-2 text-sm text-[#08060d]" />
+        <label className="text-xs text-[#98989d]">Created from
+          <input type="date" value={from} onChange={(event) => updateParam('from', event.target.value)} className="mt-1 block w-full rounded border border-[#2c2c2e] px-3 py-2 text-sm text-[#ffffff]" />
         </label>
-        <label className="text-xs text-[#6b6375]">Created through
-          <input type="date" value={to} onChange={(event) => updateParam('to', event.target.value)} className="mt-1 block w-full rounded border border-[#e5e4e7] px-3 py-2 text-sm text-[#08060d]" />
+        <label className="text-xs text-[#98989d]">Created through
+          <input type="date" value={to} onChange={(event) => updateParam('to', event.target.value)} className="mt-1 block w-full rounded border border-[#2c2c2e] px-3 py-2 text-sm text-[#ffffff]" />
         </label>
-        <label className="text-xs text-[#6b6375]">Sort by
-          <select value={sort} onChange={(event) => updateParam('sort', event.target.value)} className="mt-1 block w-full rounded border border-[#e5e4e7] bg-white px-3 py-2 text-sm text-[#08060d]">
+        <label className="text-xs text-[#98989d]">Sort by
+          <select value={sort} onChange={(event) => updateParam('sort', event.target.value)} className="mt-1 block w-full rounded border border-[#2c2c2e] bg-[#1e1e1e] px-3 py-2 text-sm text-[#ffffff]">
             <option value="created_desc">Newest first</option><option value="created_asc">Oldest first</option><option value="level_desc">Highest escalation</option><option value="ticket_asc">Ticket number</option>
           </select>
         </label>
-        <label className="text-xs text-[#6b6375]">Search ticket number
-          <span className="mt-1 flex items-center rounded border border-[#e5e4e7] px-3">
-            <Search className="mr-2 h-4 w-4 shrink-0 text-[#6b6375]" aria-hidden="true" />
-            <input value={search} onChange={(event) => updateParam('search', event.target.value)} placeholder="e.g. SW-000123" className="min-w-0 flex-1 py-2 text-sm text-[#08060d] outline-none" />
+        <label className="text-xs text-[#98989d]">Search ticket number
+          <span className="mt-1 flex items-center rounded border border-[#2c2c2e] px-3">
+            <Search className="mr-2 h-4 w-4 shrink-0 text-[#98989d]" aria-hidden="true" />
+            <input value={search} onChange={(event) => updateParam('search', event.target.value)} placeholder="e.g. SW-000123" className="min-w-0 flex-1 py-2 text-sm text-[#ffffff] outline-none" />
           </span>
         </label>
         <div className="flex items-end">
-          <button onClick={() => setSearchParams(new URLSearchParams())} className="w-full rounded border border-[#e5e4e7] px-3 py-2 text-sm hover:bg-[#f4f3ec]">Clear filters</button>
+          <button onClick={() => setSearchParams(new URLSearchParams())} className="w-full rounded border border-[#2c2c2e] px-3 py-2 text-sm hover:bg-[#121212]">Clear filters</button>
         </div>
       </section>
 
-      <div className="overflow-x-auto rounded-xl border border-[#e5e4e7]">
+      <div className="overflow-x-auto rounded-2xl border border-[#2c2c2e]">
         <table className="w-full min-w-[850px] border-collapse text-left text-sm">
-          <thead><tr className="border-b border-[#e5e4e7] bg-[#f4f3ec] text-[#6b6375]">
+          <thead><tr className="border-b border-[#2c2c2e] bg-[#121212] text-[#98989d]">
             <th className="px-4 py-3 font-medium">Ticket</th><th className="px-4 py-3 font-medium">Branch / Device</th><th className="px-4 py-3 font-medium">Assigned SI</th><th className="px-4 py-3 font-medium">Status</th><th className="px-4 py-3 font-medium">Escalation</th><th className="px-4 py-3 font-medium">Created</th><th className="px-4 py-3 font-medium">Age</th>
           </tr></thead>
           <tbody>
             {tickets.map((ticket) => (
-              <tr key={ticket.id} role="link" aria-label={`Open ticket ${ticket.ticket_number}`} tabIndex={0} onClick={() => navigate(`/tickets/${ticket.id}`)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); navigate(`/tickets/${ticket.id}`) } }} className="cursor-pointer border-b border-[#e5e4e7]/60 hover:bg-[#f4f3ec]/60 focus:bg-[#f4f3ec]">
+              <tr key={ticket.id} role="link" aria-label={`Open ticket ${ticket.ticket_number}`} tabIndex={0} onClick={() => navigate(`/tickets/${ticket.id}`)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); navigate(`/tickets/${ticket.id}`) } }} className="cursor-pointer border-b border-[#2c2c2e]/60 hover:bg-[#121212]/60 focus:bg-[#121212]">
                 <td className="px-4 py-3 font-semibold">{ticket.ticket_number}</td>
-                <td className="px-4 py-3"><div className="font-medium">{ticket.branches?.name ?? '—'}</div><div className="text-xs text-[#6b6375]">{ticket.devices?.serial_number ?? '—'}</div></td>
+                <td className="px-4 py-3"><div className="font-medium">{ticket.branches?.name ?? '—'}</div><div className="text-xs text-[#98989d]">{ticket.devices?.serial_number ?? '—'}</div></td>
                 <td className="px-4 py-3">{ticket.si_user?.name ?? ticket.si_user?.email ?? '—'}</td>
-                <td className="px-4 py-3"><span className={`rounded-full px-2 py-1 text-xs font-medium ${ticket.status === 'open' ? 'bg-[#fef3c7] text-[#92400e]' : 'bg-[#dcfce7] text-[#15803d]'}`}>{ticket.status === 'open' ? 'Open' : 'Resolved'}</span></td>
-                <td className="px-4 py-3">{ticket.escalation_level ? <span className={`rounded-full px-2 py-1 text-xs font-medium ${ticket.escalation_level === 1 ? 'bg-[#fef3c7] text-[#92400e]' : ticket.escalation_level === 2 ? 'bg-[#ffedd5] text-[#9a3412]' : 'bg-[#fee2e2] text-[#991b1b]'}`}>Level {ticket.escalation_level}</span> : <span className="text-[#6b6375]">Not escalated</span>}</td>
+                <td className="px-4 py-3"><span className={`rounded-full px-2 py-1 text-xs font-medium ${ticket.status === 'open' ? 'bg-[#3a1c1c] text-[#ff453a]' : 'bg-[#16351f] text-[#32d74b]'}`}>{ticket.status === 'open' ? 'Open' : 'Resolved'}</span></td>
+                <td className="px-4 py-3">{ticket.escalation_level ? <span className={`rounded-full px-2 py-1 text-xs font-medium ${ticket.escalation_level === 1 ? 'bg-[#3a1c1c] text-[#ff453a]' : ticket.escalation_level === 2 ? 'bg-[#3a1c1c] text-[#ff453a]' : 'bg-[#3a1c1c] text-[#ff453a]'}`}>Level {ticket.escalation_level}</span> : <span className="text-[#98989d]">Not escalated</span>}</td>
                 <td className="whitespace-nowrap px-4 py-3">{new Date(ticket.created_at).toLocaleString()}</td>
-                <td className="whitespace-nowrap px-4 py-3 text-[#6b6375]">{ticketAge(ticket.created_at, ticket.status === 'resolved' ? ticket.resolved_at : null)}</td>
+                <td className="whitespace-nowrap px-4 py-3 text-[#98989d]">{ticketAge(ticket.created_at, ticket.status === 'resolved' ? ticket.resolved_at : null)}</td>
               </tr>
             ))}
-            {tickets.length === 0 && <tr><td colSpan={7} className="px-4 py-10 text-center text-[#6b6375]">No tickets match these filters.</td></tr>}
+            {tickets.length === 0 && <tr><td colSpan={7} className="px-4 py-10 text-center text-[#98989d]">No tickets match these filters.</td></tr>}
           </tbody>
         </table>
       </div>
 
-      <div className="flex items-center justify-between text-sm text-[#6b6375]">
+      <div className="flex items-center justify-between text-sm text-[#98989d]">
         <span>{total === 0 ? 'No results' : `Showing ${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, total)} of ${total}`}</span>
         <div className="flex items-center gap-2">
           <span>Page {totalPages ? Math.min(page, totalPages) : 0} of {totalPages}</span>
-          <button aria-label="Previous page" disabled={page <= 1} onClick={() => setPage(page - 1)} className="rounded border border-[#e5e4e7] p-2 disabled:opacity-40"><ChevronLeft className="h-4 w-4" /></button>
-          <button aria-label="Next page" disabled={page >= totalPages} onClick={() => setPage(page + 1)} className="rounded border border-[#e5e4e7] p-2 disabled:opacity-40"><ChevronRight className="h-4 w-4" /></button>
+          <button aria-label="Previous page" disabled={page <= 1} onClick={() => setPage(page - 1)} className="rounded border border-[#2c2c2e] p-2 disabled:opacity-40"><ChevronLeft className="h-4 w-4" /></button>
+          <button aria-label="Next page" disabled={page >= totalPages} onClick={() => setPage(page + 1)} className="rounded border border-[#2c2c2e] p-2 disabled:opacity-40"><ChevronRight className="h-4 w-4" /></button>
         </div>
       </div>
     </div>

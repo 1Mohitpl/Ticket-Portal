@@ -14,15 +14,15 @@ import { isSupabaseConfigured } from './lib/supabase'
 function App() {
   if (!isSupabaseConfigured) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#f4f3ec] p-6">
-        <section className="w-full max-w-lg space-y-4 rounded-xl border border-[#e5e4e7] bg-white p-8 shadow-sm">
-          <p className="text-sm font-semibold uppercase tracking-wide text-[#aa3bff]">S-Watch 360 Desk</p>
+      <main className="flex min-h-screen items-center justify-center bg-[#121212] p-6">
+        <section className="w-full max-w-lg space-y-4 rounded-2xl border border-[#2c2c2e] bg-[#1e1e1e] p-8 shadow-sm">
+          <p className="text-sm font-semibold uppercase tracking-wide text-[#00e5ff]">S-Watch 360 Desk</p>
           <h1 className="text-2xl font-bold">Connect your Supabase project</h1>
-          <p className="text-sm leading-6 text-[#6b6375]">
-            The app is running, but its backend is not configured yet. Add your project URL and publishable key to a local <code className="rounded bg-[#f4f3ec] px-1 py-0.5">.env</code> file to load the sign-in page and dashboard.
+          <p className="text-sm leading-6 text-[#98989d]">
+            The app is running, but its backend is not configured yet. Add your project URL and publishable key to a local <code className="rounded bg-[#121212] px-1 py-0.5">.env</code> file to load the sign-in page and dashboard.
           </p>
-          <pre className="overflow-x-auto rounded-lg bg-[#f4f3ec] p-4 text-sm"><code>VITE_SUPABASE_URL=https://your-project.supabase.co{'\n'}VITE_SUPABASE_PUBLISHABLE_KEY=your-publishable-key</code></pre>
-          <p className="text-xs text-[#6b6375]">Copy these values from your Supabase project API settings. Restart the dev server after updating the environment file.</p>
+          <pre className="overflow-x-auto rounded-lg bg-[#121212] p-4 text-sm"><code>VITE_SUPABASE_URL=https://your-project.supabase.co{'\n'}VITE_SUPABASE_PUBLISHABLE_KEY=your-publishable-key</code></pre>
+          <p className="text-xs text-[#98989d]">Copy these values from your Supabase project API settings. Restart the dev server after updating the environment file.</p>
         </section>
       </main>
     )

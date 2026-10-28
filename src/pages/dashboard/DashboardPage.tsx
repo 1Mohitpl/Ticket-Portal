@@ -53,39 +53,45 @@ export default function DashboardPage() {
   const breakdown = computeBreakdown(role, tickets ?? [])
 
   if (authLoading || isLoading) return <div className="p-4">Loading...</div>
-  if (error) return <div className="p-4 text-[#dc2626]">Error loading dashboard: {error.message}</div>
+  if (error) return <div role="alert" className="rounded-lg border-l-4 border-[#2c2c2e] border-l-[#ff453a] bg-[#3a1c1c] p-4 text-sm text-[#ff453a]">Error loading dashboard: {error.message}</div>
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold">Dashboard</h2>
-        <p className="text-sm text-[#6b6375]">Scope: {scopeLabel(role, profile)}</p>
+        <h2 className="text-2xl font-semibold">Dashboard</h2>
+        <p className="text-sm text-[#98989d]">Scope: {scopeLabel(role, profile)}</p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {WIDGETS.map((w) => (
-          <div
+          <button
+            type="button"
             key={w.key}
-            className="p-4 bg-[#fff] border border-[#e5e4e7] rounded-xl cursor-pointer hover:border-[#aa3bff] transition"
+            className="rounded-2xl border border-[#2c2c2e] bg-[#1e1e1e] p-5 text-left transition hover:border-[#00e5ff] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00e5ff]"
             onClick={() => navigate(`/tickets?filter=${w.filter}`)}
           >
-            <div className="text-[#aa3bff]">{countFor(w.key)}</div>
-            <div className="text-sm text-[#6b6375]">{w.label}</div>
-          </div>
+            <div className="flex items-start justify-between gap-3">
+              <span className="font-mono text-[32px] font-bold leading-none text-[#00e5ff]">
+                {countFor(w.key)}
+              </span>
+              <w.icon className="h-5 w-5 text-[#00e5ff]" aria-hidden="true" />
+            </div>
+            <span className="mt-3 block text-sm text-[#98989d]">{w.label}</span>
+          </button>
         ))}
       </div>
 
-      <section className="bg-[#fff] border border-[#e5e4e7] rounded-xl p-6">
+      <section className="bg-[#1e1e1e] border border-[#2c2c2e] rounded-2xl p-6">
         <h3 className="font-semibold mb-4">Breakdown by {breakdownTitle(role)}</h3>
         {tLoading ? (
           <div className="p-4">Loading breakdown...</div>
         ) : breakdown.length === 0 ? (
-          <p className="text-sm text-[#6b6375]">No tickets in scope.</p>
+          <p className="text-sm text-[#98989d]">No tickets in scope.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm border-collapse">
               <thead>
-                <tr className="border-b border-[#e5e4e7] text-[#6b6375]">
+                <tr className="border-b border-[#2c2c2e] text-[#98989d]">
                   {breakdownCols(role).map((c) => (
                     <th key={c} className="pb-2 pr-4 font-medium">{c}</th>
                   ))}
@@ -93,7 +99,7 @@ export default function DashboardPage() {
               </thead>
               <tbody>
                 {breakdown.map((row) => (
-                  <tr key={row.label} className="border-b border-[#e5e4e7]/50 hover:bg-[#f4f3ec]/50 transition">
+                  <tr key={row.label} className="border-b border-[#2c2c2e]/50 hover:bg-[#121212]/50 transition">
                     <td className="pb-3 pr-4 font-medium">{row.label}</td>
                     {breakdownCols(role).slice(1).map((c) => (
                       <td key={c} className="pb-3 pr-4">{row[c as keyof typeof row]}</td>
