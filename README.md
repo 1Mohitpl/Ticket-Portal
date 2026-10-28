@@ -74,6 +74,20 @@ Seeded in `supabase/migrations/0003_seed.sql`: one user per role (`head_office`,
 
 Password for each demo account: `SWatch123!`.
 
+## Create a ticket through the API
+
+The Supabase REST RPC endpoint accepts a JSON body. The caller must have a valid Supabase Auth access token and permission to the branch (Head Office users can access all branches).
+
+```bash
+curl -X POST "${SUPABASE_URL}/rest/v1/rpc/create_ticket_api" \
+  -H "apikey: ${VITE_SUPABASE_PUBLISHABLE_KEY}" \
+  -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{"p_branch_code":"BA","p_note":"ATM is not dispensing cash","p_device_serial":"SN-ATM-001"}'
+```
+
+`p_branch_code` is required. `p_note` and `p_device_serial` are optional; a supplied device serial must belong to the branch. The response includes the created ticket ID and ticket number. Obtain the access token by signing in through Supabase Auth; never use a service-role key in a client.
+
 ## Build & deploy
 
 ```bash
