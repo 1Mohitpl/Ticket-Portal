@@ -1,0 +1,21 @@
+@import "tailwindcss";
+
+@theme {
+  --color-accent: #aa3bff;
+  --color-accent-bg: rgba(170, 59, 255, 0.1);
+  --color-green: #15803d;
+  --color-amber: #d97706;
+  --color-orange: #ea580c;
+  --color-red: #dc2626;
+  --color-grey: #6b7280;
+  --color-border: #e5e4e7;
+  --radius-card: 0.75rem;
+  --radius-sm: 0.25rem;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+  background: #ffffff;
+  color: #08060d;
+}
