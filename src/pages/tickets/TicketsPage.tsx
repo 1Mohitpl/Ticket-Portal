@@ -1,7 +1,7 @@
-import { useCallback } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useCallback, useState, type FormEvent } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { ChevronLeft, ChevronRight, Search } from 'lucide-react'
+import { CheckCircle, ChevronLeft, ChevronRight, Plus, Search, X } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import type { Ticket } from '../../types'
 
@@ -13,10 +13,18 @@ type TicketRow = Ticket & {
   si_user: { name: string; email: string } | null
 }
 type BranchOption = { id: string; name: string; code: string }
+type DeviceOption = { id: string; type: string; serial_number: string; status: string }
+type CreatedTicket = { ticket_id: string; ticket_number: string }
 
 export default function TicketsPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
+  const [createOpen, setCreateOpen] = useState(false)
+  const [createBranchId, setCreateBranchId] = useState('')
+  const [createDeviceSerial, setCreateDeviceSerial] = useState('')
+  const [createNote, setCreateNote] = useState('')
+  const [createdTicket, setCreatedTicket] = useState<CreatedTicket | null>(null)
   const filter = searchParams.get('filter') || 'all'
   const status = searchParams.get('status') || ''
   const level = searchParams.get('level') || ''
@@ -44,6 +52,50 @@ export default function TicketsPage() {
       return (data ?? []) as BranchOption[]
     },
   })
+
+  const createDevicesQuery = useQuery({
+    queryKey: ['ticketCreateDevices', createBranchId],
+    enabled: Boolean(createBranchId),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('devices')
+        .select('id, type, serial_number, status')
+        .eq('branch_id', createBranchId)
+        .order('serial_number')
+      if (error) throw error
+      return (data ?? []) as DeviceOption[]
+    },
+  })
+
+  const createTicket = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.rpc('create_ticket_api', {
+        p_branch_code: branchesQuery.data?.find((item) => item.id === createBranchId)?.code ?? '',
+        p_note: createNote.trim(),
+        p_device_serial: createDeviceSerial || null,
+      })
+      if (error) throw new Error(error.message)
+      return data as CreatedTicket
+    },
+    onSuccess: async (ticket) => {
+      setCreatedTicket(ticket)
+      setCreateOpen(false)
+      setCreateBranchId('')
+      setCreateDeviceSerial('')
+      setCreateNote('')
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['tickets'] }),
+        queryClient.invalidateQueries({ queryKey: ['dashboardCounts'] }),
+        queryClient.invalidateQueries({ queryKey: ['dashboardTickets'] }),
+      ])
+    },
+  })
+
+  const submitCreateTicket = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setCreatedTicket(null)
+    createTicket.mutate()
+  }
 
   const ticketsQuery = useQuery({
     queryKey: ['tickets', filter, status, level, branch, device, from, to, search, sort, page],
@@ -111,7 +163,81 @@ export default function TicketsPage() {
           <h2 className="text-2xl font-semibold">Tickets</h2>
           <p className="text-sm text-[var(--text-muted)]">{total} ticket{total === 1 ? '' : 's'}</p>
         </div>
-        <div className="flex flex-wrap gap-2" aria-label="Ticket presets">
+        <div className="flex flex-wrap items-center gap-2" aria-label="Ticket actions and presets">
+          <button
+            type="button"
+            onClick={() => {
+              createTicket.reset()
+              setCreatedTicket(null)
+              setCreateOpen(true)
+            }}
+            className="inline-flex items-center gap-2 rounded-lg bg-[var(--accent)] px-3 py-2 text-sm font-semibold text-[var(--accent-contrast)] transition hover:bg-[var(--accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+          >
+            <Plus className="h-4 w-4" aria-hidden="true" /> New ticket
+          </button>
+        </div>
+      </div>
+
+      {createdTicket && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border-l-4 border-[var(--border)] border-l-[var(--success)] bg-[var(--success-bg)] p-4 text-sm text-[var(--success)]" role="status">
+          <span className="inline-flex items-center gap-2"><CheckCircle className="h-4 w-4" />Ticket {createdTicket.ticket_number} created.</span>
+          <button type="button" onClick={() => navigate(`/tickets/${createdTicket.ticket_id}`)} className="font-semibold underline underline-offset-2">View ticket</button>
+        </div>
+      )}
+
+      {createOpen && (
+        <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5" aria-labelledby="create-ticket-title">
+          <div className="mb-4 flex items-start justify-between gap-3">
+            <div>
+              <h3 id="create-ticket-title" className="text-lg font-semibold">Create a ticket</h3>
+              <p className="mt-1 text-sm text-[var(--text-muted)]">Choose a branch and describe the issue. You can optionally attach a device.</p>
+            </div>
+            <button type="button" aria-label="Close ticket form" onClick={() => { setCreateOpen(false); createTicket.reset() }} className="rounded-lg p-2 text-[var(--text-muted)] hover:bg-[var(--row-hover)] hover:text-[var(--text-primary)]">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+
+          <form onSubmit={submitCreateTicket} className="space-y-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <label className="block text-sm font-medium text-[var(--text-primary)]">
+                Branch <span className="text-[var(--danger)]">*</span>
+                <select required value={createBranchId} onChange={(event) => { setCreateBranchId(event.target.value); setCreateDeviceSerial('') }} className="mt-1.5 block w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-sm text-[var(--text-primary)]">
+                  <option value="">{branchesQuery.isLoading ? 'Loading branches…' : 'Select a branch'}</option>
+                  {(branchesQuery.data ?? []).map((item) => <option key={item.id} value={item.id}>{item.name} ({item.code})</option>)}
+                </select>
+                {branchesQuery.error && <span className="mt-1 block text-xs text-[var(--danger)]">Could not load branches: {branchesQuery.error.message}</span>}
+                {!branchesQuery.isLoading && branchesQuery.data?.length === 0 && <span className="mt-1 block text-xs text-[var(--text-muted)]">No branches are available in your account scope.</span>}
+              </label>
+
+              <label className="block text-sm font-medium text-[var(--text-primary)]">
+                Device <span className="font-normal text-[var(--text-muted)]">(optional)</span>
+                <select value={createDeviceSerial} onChange={(event) => setCreateDeviceSerial(event.target.value)} disabled={!createBranchId || createDevicesQuery.isLoading} className="mt-1.5 block w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-sm text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-60">
+                  <option value="">{!createBranchId ? 'Select a branch first' : createDevicesQuery.isLoading ? 'Loading devices…' : 'No specific device'}</option>
+                  {(createDevicesQuery.data ?? []).map((item) => <option key={item.id} value={item.serial_number}>{item.type} · {item.serial_number} · {item.status.replace('_', ' ')}</option>)}
+                </select>
+                {createDevicesQuery.error && <span className="mt-1 block text-xs text-[var(--danger)]">Could not load devices: {createDevicesQuery.error.message}</span>}
+              </label>
+            </div>
+
+            <label className="block text-sm font-medium text-[var(--text-primary)]">
+              Issue details <span className="text-[var(--danger)]">*</span>
+              <textarea required value={createNote} onChange={(event) => setCreateNote(event.target.value)} rows={4} maxLength={2000} placeholder="Describe what happened and any steps already taken…" className="mt-1.5 block w-full resize-y rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)]" />
+              <span className="mt-1 block text-right text-xs text-[var(--text-muted)]">{createNote.length}/2000</span>
+            </label>
+
+            {createTicket.error && <div role="alert" className="rounded-lg border-l-4 border-[var(--border)] border-l-[var(--danger)] bg-[var(--danger-bg)] p-3 text-sm text-[var(--danger)]">Could not create ticket: {createTicket.error.message}</div>}
+
+            <div className="flex flex-wrap justify-end gap-2">
+              <button type="button" onClick={() => { setCreateOpen(false); createTicket.reset() }} className="rounded-lg border border-[var(--border)] px-4 py-2 text-sm hover:bg-[var(--row-hover)]">Cancel</button>
+              <button type="submit" disabled={createTicket.isPending || branchesQuery.isLoading || !branchesQuery.data?.length} className="inline-flex items-center gap-2 rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-[var(--accent-contrast)] transition hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-50">
+                <Plus className="h-4 w-4" />{createTicket.isPending ? 'Creating…' : 'Create ticket'}
+              </button>
+            </div>
+          </form>
+        </section>
+      )}
+
+      <div className="flex flex-wrap gap-2" aria-label="Ticket presets">
           {[
             ['all', 'All'], ['open', 'Open'], ['resolved', 'Resolved'], ['escalated', 'Escalated'],
             ['today_open', "Today's open"], ['today_resolved', "Today's resolved"],
@@ -122,7 +248,6 @@ export default function TicketsPage() {
               {label}
             </button>
           ))}
-        </div>
       </div>
 
       <section className="grid grid-cols-1 gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Ticket filters">
