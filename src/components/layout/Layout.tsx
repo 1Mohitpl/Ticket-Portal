@@ -1,6 +1,7 @@
 import { Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { LogOut, LayoutDashboard, FileText, HardDrive, ShieldAlert, Users, Settings } from 'lucide-react'
+import ThemeToggle from '../theme/ThemeToggle'
 
 const SIDEBAR_ITEMS = [
   { path: '/', label: 'Dashboard', icon: LayoutDashboard },
@@ -26,11 +27,11 @@ export default function Layout() {
     profile?.role === 'head_office' ? [...SIDEBAR_ITEMS, ...HO_ONLY_ITEMS] : SIDEBAR_ITEMS
 
   return (
-    <div className="flex h-screen bg-[#121212]">
-      <aside className="w-64 border-r border-[#2c2c2e] bg-[#1e1e1e] flex flex-col">
+    <div className="flex h-screen bg-[var(--background)]">
+      <aside className="w-64 border-r border-[var(--border)] bg-[var(--surface)] flex flex-col">
         <div className="p-6">
           <h1 className="text-xl font-bold tracking-tight">S-Watch 360</h1>
-          <p className="text-xs text-[#98989d] mt-1">{profile?.role.replace('_', ' ')}</p>
+          <p className="text-xs text-[var(--text-muted)] mt-1">{profile?.role.replace('_', ' ')}</p>
         </div>
         <nav className="p-4 space-y-1">
           {items.map((item) => (
@@ -39,8 +40,8 @@ export default function Layout() {
               href={item.path}
               className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm ${
                 isActive(item.path)
-                  ? 'bg-[#00e5ff]/10 text-[#00e5ff]'
-                  : 'text-[#98989d] hover:bg-[#2c2c2e]'
+                  ? 'bg-[var(--accent)]/10 text-[var(--accent)]'
+                  : 'text-[var(--text-muted)] hover:bg-[var(--border)]'
               }`}
             >
               <item.icon className="w-5 h-5" />
@@ -48,20 +49,21 @@ export default function Layout() {
             </a>
           ))}
         </nav>
-        <div className="mt-auto p-4 border-t border-[#2c2c2e]">
+        <div className="mt-auto p-4 border-t border-[var(--border)]">
           <button
-            onClick={signOut}            className="flex w-full items-center gap-3 px-3 py-2 rounded-md text-sm text-[#ff453a] hover:bg-[#2c2c2e]"
+            onClick={signOut}            className="flex w-full items-center gap-3 px-3 py-2 rounded-md text-sm text-[var(--danger)] hover:bg-[var(--border)]"
           >
             <LogOut className="w-5 h-5" /> Sign out
           </button>
         </div>
       </aside>
-      <main className="flex-1 overflow-y-auto bg-[#121212] p-6">
-        <header className="flex items-center justify-between mb-6">
+      <main className="flex-1 overflow-y-auto bg-[var(--background)] p-6">
+        <header className="mb-6 flex items-center justify-between gap-4">
           <div>
             <h2 className="text-2xl font-semibold">{currentPageTitle(location.pathname)}</h2>
-            <p className="text-sm text-[#98989d]">{profile?.email}</p>
+            <p className="text-sm text-[var(--text-muted)]">{profile?.email}</p>
           </div>
+          <ThemeToggle />
         </header>
         <Outlet />
       </main>

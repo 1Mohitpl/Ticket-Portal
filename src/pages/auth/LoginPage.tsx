@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { AlertCircle, Eye, EyeOff, Loader2, Lock, Mail, ShieldCheck } from 'lucide-react'
+import ThemeToggle from '../../components/theme/ThemeToggle'
 
 const HIGHLIGHTS = [
   'Automatic tickets when a device stays down for 24 hours',
@@ -32,10 +33,10 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen bg-[#121212]">
-      <aside className="relative hidden w-[46%] flex-col justify-between overflow-hidden bg-linear-to-br from-[#121212] via-[#1e1e1e] to-[#00e5ff] p-12 text-white lg:flex">
+    <main className="flex min-h-screen bg-[var(--background)]">
+      <aside className="relative hidden w-[46%] flex-col justify-between overflow-hidden bg-linear-to-br from-[#121212] via-[#1e1e1e] to-[var(--accent)] p-12 text-white lg:flex">
         <div className="pointer-events-none absolute -top-24 -right-24 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-32 -left-16 h-80 w-80 rounded-full bg-[#00e5ff]/40 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-32 -left-16 h-80 w-80 rounded-full bg-[var(--accent)]/40 blur-3xl" />
 
         <div className="relative">
           <div className="flex items-center gap-3">
@@ -72,19 +73,22 @@ export default function LoginPage() {
         <p className="relative text-xs text-white/50">© 2026 S-Watch 360 Desk</p>
       </aside>
 
-      <section className="flex flex-1 items-center justify-center px-5 py-10 sm:px-8">
+      <section className="relative flex flex-1 items-center justify-center px-5 py-10 sm:px-8">
+        <div className="absolute right-5 top-5 sm:right-8 sm:top-8">
+          <ThemeToggle compact />
+        </div>
         <div className="w-full max-w-[420px]">
           <div className="mb-8 flex items-center gap-3 lg:hidden">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#00e5ff] text-[#121212]">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--accent)] text-[var(--accent-contrast)]">
               <ShieldCheck className="h-5 w-5" aria-hidden="true" />
             </div>
             <p className="text-lg font-semibold tracking-tight">S-Watch 360 Desk</p>
           </div>
 
-          <div className="rounded-2xl border border-[#2c2c2e] bg-[#1e1e1e] p-7 shadow-[0_18px_50px_-24px_rgba(0,0,0,0.55)] sm:p-9">
+          <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-7 shadow-[0_18px_50px_-24px_rgba(0,0,0,0.55)] sm:p-9">
             <div className="mb-7">
-              <h1 className="text-2xl font-bold tracking-tight text-[#ffffff]">Welcome back</h1>
-              <p className="mt-1.5 text-sm text-[#98989d]">
+              <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)]">Welcome back</h1>
+              <p className="mt-1.5 text-sm text-[var(--text-muted)]">
                 Sign in to your account to continue.
               </p>
             </div>
@@ -92,7 +96,7 @@ export default function LoginPage() {
             {error && (
               <div
                 role="alert"
-                className="mb-5 flex items-center gap-2.5 rounded-lg border-l-4 border-[#2c2c2e] border-l-[#ff453a] bg-[#3a1c1c] px-3.5 py-3 text-sm text-[#ff453a]"
+                className="mb-5 flex items-center gap-2.5 rounded-lg border-l-4 border-[var(--border)] border-l-[var(--danger)] bg-[var(--danger-bg)] px-3.5 py-3 text-sm text-[var(--danger)]"
               >
                 <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
                 {error}
@@ -101,12 +105,12 @@ export default function LoginPage() {
 
             <form onSubmit={handleSubmit} className="space-y-5">
               <div>
-                <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-[#ffffff]">
+                <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-[var(--text-primary)]">
                   Email
                 </label>
                 <div className="relative">
                   <Mail
-                    className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#98989d]"
+                    className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-muted)]"
                     aria-hidden="true"
                   />
                   <input
@@ -115,7 +119,7 @@ export default function LoginPage() {
                     required
                     autoComplete="email"
                     placeholder="you@bank.com"
-                    className="w-full rounded-lg border border-[#2c2c2e] bg-[#1e1e1e] py-2.5 pl-10 pr-3 text-sm text-[#ffffff] placeholder:text-[#98989d] transition focus:border-[#00e5ff] focus:outline-none focus:ring-4 focus:ring-[#00e5ff]/15"
+                    className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] py-2.5 pl-10 pr-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] transition focus:border-[var(--accent)] focus:outline-none focus:ring-4 focus:ring-[var(--accent)]/15"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                   />
@@ -123,12 +127,12 @@ export default function LoginPage() {
               </div>
 
               <div>
-                <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-[#ffffff]">
+                <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-[var(--text-primary)]">
                   Password
                 </label>
                 <div className="relative">
                   <Lock
-                    className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#98989d]"
+                    className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-muted)]"
                     aria-hidden="true"
                   />
                   <input
@@ -137,7 +141,7 @@ export default function LoginPage() {
                     required
                     autoComplete="current-password"
                     placeholder="••••••••"
-                    className="w-full rounded-lg border border-[#2c2c2e] bg-[#1e1e1e] py-2.5 pl-10 pr-11 text-sm text-[#ffffff] placeholder:text-[#98989d] transition focus:border-[#00e5ff] focus:outline-none focus:ring-4 focus:ring-[#00e5ff]/15"
+                    className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] py-2.5 pl-10 pr-11 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] transition focus:border-[var(--accent)] focus:outline-none focus:ring-4 focus:ring-[var(--accent)]/15"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                   />
@@ -145,7 +149,7 @@ export default function LoginPage() {
                     type="button"
                     onClick={() => setShowPassword((v) => !v)}
                     aria-label={showPassword ? 'Hide password' : 'Show password'}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-[#98989d] transition hover:bg-[#121212] hover:text-[#98989d] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00e5ff]"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-[var(--text-muted)] transition hover:bg-[var(--background)] hover:text-[var(--text-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
                   >
                     {showPassword ? (
                       <EyeOff className="h-4 w-4" aria-hidden="true" />
@@ -159,7 +163,7 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#00e5ff] px-4 py-2.5 text-sm font-semibold text-[#121212] shadow-sm shadow-[#00e5ff]/30 transition hover:bg-[#00b8cc] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#00e5ff]/30 disabled:cursor-not-allowed disabled:opacity-60"
+                className="flex w-full items-center justify-center gap-2 rounded-lg bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-[var(--accent-contrast)] shadow-sm shadow-[var(--accent)]/30 transition hover:bg-[var(--accent-hover)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--accent)]/30 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {loading && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
                 {loading ? 'Signing in...' : 'Sign in'}
@@ -167,7 +171,7 @@ export default function LoginPage() {
             </form>
           </div>
 
-          <p className="mt-6 text-center text-xs text-[#98989d]">
+          <p className="mt-6 text-center text-xs text-[var(--text-muted)]">
             Demo credentials are seeded in the Supabase project (see README).
           </p>
         </div>

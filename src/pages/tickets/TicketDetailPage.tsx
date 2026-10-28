@@ -102,7 +102,7 @@ export default function TicketDetailPage() {
   })
 
   if (authLoading || ticketQuery.isLoading) return <p className="p-4" role="status">Loading ticket…</p>
-  if (ticketQuery.error || !ticketQuery.data) return <div className="space-y-3 rounded-lg border-l-4 border-[#2c2c2e] border-l-[#ff453a] bg-[#3a1c1c] p-4" role="alert"><p className="text-[#ff453a]">Could not load ticket: {ticketQuery.error?.message ?? 'Ticket not found.'}</p><button onClick={() => void ticketQuery.refetch()} className="rounded border border-[#2c2c2e] px-3 py-2 text-sm">Try again</button></div>
+  if (ticketQuery.error || !ticketQuery.data) return <div className="space-y-3 rounded-lg border-l-4 border-[var(--border)] border-l-[var(--danger)] bg-[var(--danger-bg)] p-4" role="alert"><p className="text-[var(--danger)]">Could not load ticket: {ticketQuery.error?.message ?? 'Ticket not found.'}</p><button onClick={() => void ticketQuery.refetch()} className="rounded border border-[var(--border)] px-3 py-2 text-sm">Try again</button></div>
 
   const ticket = ticketQuery.data
   const canManage = ticket.status === 'open' && (profile?.role === 'head_office' || (profile?.role === 'si' && ticket.si_user_id === profile.id))
@@ -114,13 +114,13 @@ export default function TicketDetailPage() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-5">
-      <Link to="/tickets" className="inline-flex items-center gap-2 text-sm text-[#98989d] hover:text-[#00e5ff]"><ArrowLeft className="h-4 w-4" />Back to tickets</Link>
+      <Link to="/tickets" className="inline-flex items-center gap-2 text-sm text-[var(--text-muted)] hover:text-[var(--accent)]"><ArrowLeft className="h-4 w-4" />Back to tickets</Link>
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div><p className="text-sm text-[#98989d]">Ticket</p><h2 className="text-2xl font-bold">{ticket.ticket_number}</h2><p className="mt-1 text-sm text-[#98989d]">Created {formatDate(ticket.created_at)} · Age {ticketAge(ticket.created_at, ticket.status === 'resolved' ? ticket.resolved_at : null)}</p></div>
-        <div className="flex flex-wrap gap-2"><span className={`rounded-full px-3 py-1 text-sm font-medium ${ticket.status === 'open' ? 'bg-[#3a1c1c] text-[#ff453a]' : 'bg-[#16351f] text-[#32d74b]'}`}>{ticket.status === 'open' ? 'Open' : 'Resolved'}</span><span className={`rounded-full px-3 py-1 text-sm font-medium ${ticket.escalation_level === 3 ? 'bg-[#3a1c1c] text-[#ff453a]' : ticket.escalation_level === 2 ? 'bg-[#3a1c1c] text-[#ff453a]' : ticket.escalation_level === 1 ? 'bg-[#3a1c1c] text-[#ff453a]' : 'bg-[#121212] text-[#98989d]'}`}>{ticket.escalation_level ? `Level ${ticket.escalation_level}` : 'Not escalated'}</span></div>
+        <div><p className="text-sm text-[var(--text-muted)]">Ticket</p><h2 className="text-2xl font-bold">{ticket.ticket_number}</h2><p className="mt-1 text-sm text-[var(--text-muted)]">Created {formatDate(ticket.created_at)} · Age {ticketAge(ticket.created_at, ticket.status === 'resolved' ? ticket.resolved_at : null)}</p></div>
+        <div className="flex flex-wrap gap-2"><span className={`rounded-full px-3 py-1 text-sm font-medium ${ticket.status === 'open' ? 'bg-[var(--danger-bg)] text-[var(--danger)]' : 'bg-[var(--success-bg)] text-[var(--success)]'}`}>{ticket.status === 'open' ? 'Open' : 'Resolved'}</span><span className={`rounded-full px-3 py-1 text-sm font-medium ${ticket.escalation_level === 3 ? 'bg-[var(--danger-bg)] text-[var(--danger)]' : ticket.escalation_level === 2 ? 'bg-[var(--danger-bg)] text-[var(--danger)]' : ticket.escalation_level === 1 ? 'bg-[var(--danger-bg)] text-[var(--danger)]' : 'bg-[var(--background)] text-[var(--text-muted)]'}`}>{ticket.escalation_level ? `Level ${ticket.escalation_level}` : 'Not escalated'}</span></div>
       </div>
 
-      <section className="grid grid-cols-1 gap-4 rounded-2xl border border-[#2c2c2e] bg-[#1e1e1e] p-5 sm:grid-cols-2" aria-label="Ticket information">
+      <section className="grid grid-cols-1 gap-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 sm:grid-cols-2" aria-label="Ticket information">
         <Info label="Branch" value={`${ticket.branches?.name ?? '—'}${ticket.branches?.code ? ` (${ticket.branches.code})` : ''}`} />
         <Info label="Region" value={[ticket.branches?.zones?.nbgs?.name, ticket.branches?.zones?.name].filter(Boolean).join(' / ') || '—'} />
         <Info label="Device" value={ticket.devices ? `${ticket.devices.type} · ${ticket.devices.serial_number}` : '—'} />
@@ -130,26 +130,26 @@ export default function TicketDetailPage() {
         {ticket.resolution_note && <div className="sm:col-span-2"><Info label="Resolution note" value={ticket.resolution_note} /></div>}
       </section>
 
-      {canManage && <section className="space-y-3 rounded-2xl border border-[#2c2c2e] bg-[#1e1e1e] p-5" aria-label="Ticket actions">
+      {canManage && <section className="space-y-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5" aria-label="Ticket actions">
         <h3 className="font-semibold">Update ticket</h3>
-        <label htmlFor="ticket-note" className="block text-sm text-[#98989d]">Add a note (optional when resolving)</label>
-        <textarea id="ticket-note" value={note} onChange={(event) => setNote(event.target.value)} rows={3} maxLength={2000} className="w-full rounded border border-[#2c2c2e] p-3 text-sm" placeholder="Add an update or resolution note…" />
-        {actionError && <div role="alert" className="rounded-lg border-l-4 border-[#2c2c2e] border-l-[#ff453a] bg-[#3a1c1c] p-3 text-sm text-[#ff453a]">{actionError}</div>}
+        <label htmlFor="ticket-note" className="block text-sm text-[var(--text-muted)]">Add a note (optional when resolving)</label>
+        <textarea id="ticket-note" value={note} onChange={(event) => setNote(event.target.value)} rows={3} maxLength={2000} className="w-full rounded border border-[var(--border)] p-3 text-sm" placeholder="Add an update or resolution note…" />
+        {actionError && <div role="alert" className="rounded-lg border-l-4 border-[var(--border)] border-l-[var(--danger)] bg-[var(--danger-bg)] p-3 text-sm text-[var(--danger)]">{actionError}</div>}
         <div className="flex flex-wrap gap-2">
-          <button disabled={busy || !note.trim()} onClick={() => addNote.mutate()} className="inline-flex items-center gap-2 rounded border border-[#2c2c2e] px-4 py-2 text-sm disabled:opacity-50"><MessageSquare className="h-4 w-4" />{addNote.isPending ? 'Adding…' : 'Add note'}</button>
-          <button disabled={busy} onClick={() => resolve.mutate()} className="inline-flex items-center gap-2 rounded bg-[#32d74b] px-4 py-2 text-sm font-medium text-[#121212] disabled:opacity-50"><CheckCircle className="h-4 w-4" />{resolve.isPending ? 'Resolving…' : 'Mark resolved'}</button>
+          <button disabled={busy || !note.trim()} onClick={() => addNote.mutate()} className="inline-flex items-center gap-2 rounded border border-[var(--border)] px-4 py-2 text-sm disabled:opacity-50"><MessageSquare className="h-4 w-4" />{addNote.isPending ? 'Adding…' : 'Add note'}</button>
+          <button disabled={busy} onClick={() => resolve.mutate()} className="inline-flex items-center gap-2 rounded bg-[var(--success)] px-4 py-2 text-sm font-medium text-[var(--accent-contrast)] disabled:opacity-50"><CheckCircle className="h-4 w-4" />{resolve.isPending ? 'Resolving…' : 'Mark resolved'}</button>
         </div>
       </section>}
 
-      <section className="rounded-2xl border border-[#2c2c2e] bg-[#1e1e1e] p-5">
+      <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">
         <h3 className="mb-4 font-semibold">Activity timeline</h3>
-        {(eventsQuery.isLoading || emailsQuery.isLoading) ? <p role="status" className="text-sm text-[#98989d]">Loading activity…</p> : (eventsQuery.error || emailsQuery.error) ? <div role="alert" className="space-y-2 text-sm text-[#ff453a]"><p>Could not load all ticket activity: {eventsQuery.error?.message ?? emailsQuery.error?.message}</p><button onClick={() => { void eventsQuery.refetch(); void emailsQuery.refetch() }} className="inline-flex items-center gap-1 rounded border border-[#2c2c2e] px-3 py-1 text-[#ffffff]"><RefreshCw className="h-3 w-3" />Retry</button></div> : items.length === 0 ? <p className="text-sm text-[#98989d]">No activity has been recorded yet.</p> : <ol className="space-y-4">{items.map((item) => item.kind === 'event' ? <li key={item.id} className="flex gap-3"><Clock className="mt-0.5 h-4 w-4 shrink-0 text-[#00e5ff]" /><div className="min-w-0"><p className="font-medium">{eventTitle(item.event.event_type)}</p><p className="text-xs text-[#98989d]">{formatDate(item.event.created_at)} · {item.event.actor?.name ?? item.event.actor_role?.replace('_', ' ') ?? 'System'}</p>{item.event.note && <p className="mt-1 whitespace-pre-wrap text-sm">{item.event.note}</p>}</div></li> : <li key={item.id} className="flex gap-3"><Mail className="mt-0.5 h-4 w-4 shrink-0 text-[#98989d]" /><div><p className="font-medium">Escalation email {item.email.status}</p><p className="text-xs text-[#98989d]">{formatDate(item.at)} · {item.email.subject}</p>{item.email.error && <p className="mt-1 text-sm text-[#ff453a]">{item.email.error}</p>}</div></li>)}</ol>}
+        {(eventsQuery.isLoading || emailsQuery.isLoading) ? <p role="status" className="text-sm text-[var(--text-muted)]">Loading activity…</p> : (eventsQuery.error || emailsQuery.error) ? <div role="alert" className="space-y-2 text-sm text-[var(--danger)]"><p>Could not load all ticket activity: {eventsQuery.error?.message ?? emailsQuery.error?.message}</p><button onClick={() => { void eventsQuery.refetch(); void emailsQuery.refetch() }} className="inline-flex items-center gap-1 rounded border border-[var(--border)] px-3 py-1 text-[var(--text-primary)]"><RefreshCw className="h-3 w-3" />Retry</button></div> : items.length === 0 ? <p className="text-sm text-[var(--text-muted)]">No activity has been recorded yet.</p> : <ol className="space-y-4">{items.map((item) => item.kind === 'event' ? <li key={item.id} className="flex gap-3"><Clock className="mt-0.5 h-4 w-4 shrink-0 text-[var(--accent)]" /><div className="min-w-0"><p className="font-medium">{eventTitle(item.event.event_type)}</p><p className="text-xs text-[var(--text-muted)]">{formatDate(item.event.created_at)} · {item.event.actor?.name ?? item.event.actor_role?.replace('_', ' ') ?? 'System'}</p>{item.event.note && <p className="mt-1 whitespace-pre-wrap text-sm">{item.event.note}</p>}</div></li> : <li key={item.id} className="flex gap-3"><Mail className="mt-0.5 h-4 w-4 shrink-0 text-[var(--text-muted)]" /><div><p className="font-medium">Escalation email {item.email.status}</p><p className="text-xs text-[var(--text-muted)]">{formatDate(item.at)} · {item.email.subject}</p>{item.email.error && <p className="mt-1 text-sm text-[var(--danger)]">{item.email.error}</p>}</div></li>)}</ol>}
       </section>
     </div>
   )
 }
 
-function Info({ label, value }: { label: string; value: string }) { return <div><p className="text-xs font-medium uppercase tracking-wide text-[#98989d]">{label}</p><p className="mt-1 text-sm">{value}</p></div> }
+function Info({ label, value }: { label: string; value: string }) { return <div><p className="text-xs font-medium uppercase tracking-wide text-[var(--text-muted)]">{label}</p><p className="mt-1 text-sm">{value}</p></div> }
 function formatDate(value: string) { return new Date(value).toLocaleString() }
 function ticketAge(start: string, end: string | null) { const ms = Math.max(0, new Date(end ?? Date.now()).getTime() - new Date(start).getTime()); const hours = Math.floor(ms / 3_600_000); return hours < 24 ? `${hours}h` : `${Math.floor(hours / 24)}d ${hours % 24}h` }
 function eventTitle(type: string) { return ({ created: 'Ticket created', escalated: 'Ticket escalated', note: 'Note added', resolved: 'Ticket resolved' } as Record<string, string>)[type] ?? type.replaceAll('_', ' ')}
