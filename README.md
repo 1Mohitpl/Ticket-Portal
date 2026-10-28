@@ -62,7 +62,17 @@ Leave a device in `fault` for 24 hours (backdate `status_since` via SQL for test
 
 ## Demo accounts
 
-Seeded in `supabase/migrations/0003_seed.sql`: one user per role (`head_office`, `nbg`, `zonal`, `branch`, `si`). Passwords are set in the seed file.
+Seeded in `supabase/migrations/0003_seed.sql`: one user per role (`head_office`, `nbg`, `zonal`, `branch`, `si`). These shared credentials are for local/demo use only; replace them before production.
+
+| Role | Email |
+| --- | --- |
+| Head Office | `ho@swatch.example` |
+| NBG | `nbg@swatch.example` |
+| Zonal | `zonal@swatch.example` |
+| Branch | `branch@swatch.example` |
+| SI | `si@swatch.example` |
+
+Password for each demo account: `SWatch123!`.
 
 ## Build & deploy
 

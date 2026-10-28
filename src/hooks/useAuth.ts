@@ -25,22 +25,34 @@ export function useAuth(): AuthState {
 
   useEffect(() => {
     let mounted = true
-    setLoading(true)
-    supabase.auth.getUser().then(({ data }) => {
+
+    const syncSession = async (u: { id: string; email?: string | null } | null) => {
       if (!mounted) return
-      const u = (data as { user: { id: string; email?: string | null } | null }).user
-      setUser(u ?? null)
-      if (u) loadProfile(u.id).catch(() => {})
-      setLoading(false)
-    })
+      setLoading(true)
+      setUser(u)
+
+      if (!u) {
+        setProfile(null)
+        setLoading(false)
+        return
+      }
+
+      try {
+        await loadProfile(u.id)
+      } catch {
+        if (mounted) setProfile(null)
+      } finally {
+        if (mounted) setLoading(false)
+      }
+    }
+
+    supabase.auth.getUser().then(({ data }) => syncSession(data.user ?? null))
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!mounted) return
-      setUser(session?.user ?? null)
-      if (session?.user) loadProfile(session.user.id).catch(() => {})
-      setLoading(false)
+      void syncSession(session?.user ?? null)
     })
 
     return () => {

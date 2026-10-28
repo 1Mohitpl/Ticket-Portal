@@ -61,7 +61,7 @@ export default function TicketsPage() {
 
       let query = supabase
         .from('tickets')
-        .select('*, branches(name, code), devices(serial_number), si_user:profiles(name, email)', { count: 'exact' })
+        .select('*, branches(name, code), devices(serial_number), si_user:profiles!tickets_si_user_id_fkey(name, email)', { count: 'exact' })
 
       if (filter === 'open' || filter === 'today_open' || filter === 'escalated') query = query.eq('status', 'open')
       if (filter === 'resolved' || filter === 'today_resolved') query = query.eq('status', 'resolved')

@@ -6,7 +6,7 @@ create or replace function public.add_ticket_note(p_ticket_id uuid, p_note text)
 returns void
 language plpgsql
 security definer
-set search_path = public
+set search_path = ''
 as $$
 declare
   target public.tickets%rowtype;
@@ -45,7 +45,7 @@ create or replace function public.resolve_ticket(p_ticket_id uuid, p_note text d
 returns void
 language plpgsql
 security definer
-set search_path = public
+set search_path = ''
 as $$
 declare
   target public.tickets%rowtype;
