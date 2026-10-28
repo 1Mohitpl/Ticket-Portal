@@ -34,7 +34,7 @@ begin
     values (
       new_ticket_id,
       'created',
-      'system',
+      null,
       'Auto-created after 24h in ' || rec.status
     );
   end loop;
@@ -71,7 +71,7 @@ begin
       where id = rec.id;
 
       insert into public.ticket_events (ticket_id, event_type, actor_role, note)
-      values (rec.id, 'escalated', 'system', 'Escalation level ' || target_level);
+      values (rec.id, 'escalated', null, 'Escalation level ' || target_level);
 
       insert into public.email_outbox (ticket_id, to_email, subject, body)
       values (

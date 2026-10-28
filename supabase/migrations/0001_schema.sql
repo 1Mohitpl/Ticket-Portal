@@ -155,11 +155,13 @@ $$;
 
 -- Returns true if the given branch is within the caller's scope.
 create or replace function public.branch_in_scope(branch_id uuid) returns boolean
-language sql stable security definer
+language plpgsql stable security definer
 as $$
   declare
     r public.user_role;
     p public.profiles%rowtype;
+    b public.branches%rowtype;
+    z public.zones%rowtype;
   begin
     select * into p from public.profiles where id = auth.uid();
     if not found then return false; end if;
@@ -179,30 +181,25 @@ as $$
     end if;
 
     -- NBG / Zonal / Branch: walk up the branch's zone/nbg
-    declare
-      b public.branches%rowtype;
-      z public.zones%rowtype;
-    begin
-      select * into b from public.branches where id = branch_in_scope.branch_id;
-      if not found then return false; end if;
+    select * into b from public.branches where id = branch_in_scope.branch_id;
+    if not found then return false; end if;
 
-      if r = 'branch' then
-        return b.id = p.branch_id;
-      end if;
+    if r = 'branch' then
+      return b.id = p.branch_id;
+    end if;
 
-      select * into z from public.zones where id = b.zone_id;
-      if not found then return false; end if;
+    select * into z from public.zones where id = b.zone_id;
+    if not found then return false; end if;
 
-      if r = 'zonal' then
-        return z.id = p.zone_id;
-      end if;
+    if r = 'zonal' then
+      return z.id = p.zone_id;
+    end if;
 
-      if r = 'nbg' then
-        return z.nbg_id = p.nbg_id;
-      end if;
+    if r = 'nbg' then
+      return z.nbg_id = p.nbg_id;
+    end if;
 
-      return false;
-    end;
+    return false;
   end;
 $$;
 
