@@ -2,13 +2,33 @@ import React from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
-import { supabase } from '../../lib/supabase'
-import type { Ticket, Profile } from '../../types'
+import { apiFetch } from '../../lib/api'
+import type { Profile } from '../../types'
 import { AlertTriangle, Clock, CheckCircle, Mail } from 'lucide-react'
 
 type Role = Profile['role']
 
-const WIDGETS: Array<{ key: string; label: string; icon: React.ElementType; filter: string }> = [  { key: 'open', label: 'Open Tickets', icon: AlertTriangle, filter: 'open' },
+interface Stats {
+  total: number
+  open: number
+  today_open: number
+  today_resolved: number
+  resolved: number
+  escalated: number
+}
+
+interface BreakdownRow {
+  branch_name: string
+  zone_name: string | null
+  nbg_name: string | null
+  device_serial: string | null
+  open: number
+  resolved: number
+  escalated: number
+}
+
+const WIDGETS: Array<{ key: keyof Stats; label: string; icon: React.ElementType; filter: string }> = [
+  { key: 'open', label: 'Open Tickets', icon: AlertTriangle, filter: 'open' },
   { key: 'today_open', label: "Today's Open Tickets", icon: Clock, filter: 'today_open' },
   { key: 'today_resolved', label: "Today's Resolved Tickets", icon: CheckCircle, filter: 'today_resolved' },
   { key: 'resolved', label: 'Resolved Tickets', icon: CheckCircle, filter: 'resolved' },
@@ -20,37 +40,24 @@ export default function DashboardPage() {
   const navigate = useNavigate()
   const role = (profile?.role ?? 'head_office') as Role
 
-  const { data: counts, isLoading, error } = useQuery({
-    queryKey: ['dashboardCounts'],
+  const { data: stats, isLoading, error } = useQuery({
+    queryKey: ['dashboardStats'],
+    queryFn: () => apiFetch<Stats>('/tickets/stats'),
+    enabled: !authLoading,
+  })
+
+  const countFor = (key: keyof Stats) => stats?.[key] ?? 0
+
+  const { data: breakdownRows, isLoading: tLoading, error: breakdownError } = useQuery({
+    queryKey: ['dashboardBreakdown'],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('dashboard_counts')
-      if (error) throw error
-      return (data as Array<{ widget: string; value: number; filter_key: string }>) ?? []
+      const { data } = await apiFetch<{ data: BreakdownRow[] }>('/tickets/breakdown')
+      return data
     },
     enabled: !authLoading,
   })
 
-  const countFor = (key: string) => counts?.find((c) => c.widget === key)?.value ?? 0
-
-  // Breakdown query scoped by RLS
-  const { data: tickets, isLoading: tLoading } = useQuery({
-    queryKey: ['dashboardTickets'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('tickets')
-        .select(`
-          *,
-          branches ( id, name, zones ( id, name, nbgs ( id, name ) ) ),
-          devices ( id, serial_number )
-        `)
-        .order('created_at', { ascending: false })
-      if (error) throw error
-      return (data as Ticket[]) ?? []
-    },
-    enabled: !authLoading,
-  })
-
-  const breakdown = computeBreakdown(role, tickets ?? [])
+  const breakdown = computeBreakdown(role, breakdownRows ?? [])
 
   if (authLoading || isLoading) return <div className="p-4">Loading...</div>
   if (error) return <div role="alert" className="rounded-lg border-l-4 border-[var(--border)] border-l-[var(--danger)] bg-[var(--danger-bg)] p-4 text-sm text-[var(--danger)]">Error loading dashboard: {error.message}</div>
@@ -85,6 +92,8 @@ export default function DashboardPage() {
         <h3 className="font-semibold mb-4">Breakdown by {breakdownTitle(role)}</h3>
         {tLoading ? (
           <div className="p-4">Loading breakdown...</div>
+        ) : breakdownError ? (
+          <p role="alert" className="text-sm text-[#dc2626]">Could not load breakdown: {breakdownError.message}</p>
         ) : breakdown.length === 0 ? (
           <p className="text-sm text-[var(--text-muted)]">No tickets in scope.</p>
         ) : (
@@ -154,33 +163,25 @@ interface Row {
   [key: string]: string | number
 }
 
-function computeBreakdown(role: Role, tickets: Ticket[]): Row[] {
+function computeBreakdown(role: Role, rows: BreakdownRow[]): Row[] {
   const groups = new Map<string, Row>()
 
-  for (const t of tickets) {
-    let label = ''
-    if (role === 'head_office') {
-      const nbg = t.branches?.zones?.nbgs?.name ?? 'Unknown NBG'
-      label = nbg
-    } else if (role === 'nbg') {
-      label = t.branches?.zones?.name ?? 'Unknown Zone'
-    } else if (role === 'zonal') {
-      label = t.branches?.name ?? 'Unknown Branch'
-    } else if (role === 'branch') {
-      label = t.devices?.serial_number ?? 'Unknown Device'
-    } else if (role === 'si') {
-      label = t.branches?.name ?? 'Unknown Branch'
-    }
-    if (!label) label = 'Unknown'
+  for (const row of rows) {
+    const label = role === 'head_office'
+      ? row.nbg_name
+      : role === 'nbg'
+        ? row.zone_name
+        : role === 'branch'
+          ? (row.device_serial ?? 'Unknown device')
+          : row.branch_name
+    if (!label) continue
+
     const cur = groups.get(label) ?? { label, open: 0, resolved: 0, escalated: 0 }
-    if (t.status === 'open') {
-      cur.open += 1
-      if (t.escalation_level > 0) cur.escalated += 1
-    } else {
-      cur.resolved += 1
-    }
-    groups.set(label, cur as Row)
+    cur.open += row.open
+    cur.resolved += row.resolved
+    cur.escalated += row.escalated
+    groups.set(label, cur)
   }
 
-  return Array.from(groups.values()).sort((a, b) => (b.open as number) - (a.open as number))
+  return Array.from(groups.values()).sort((a, b) => b.open - a.open)
 }

@@ -2,6 +2,7 @@ import { useCallback, useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { CheckCircle, ChevronLeft, ChevronRight, Plus, Search, X } from 'lucide-react'
+import { apiFetch } from '../../lib/api'
 import { supabase } from '../../lib/supabase'
 import type { Ticket } from '../../types'
 
@@ -47,9 +48,8 @@ export default function TicketsPage() {
   const branchesQuery = useQuery({
     queryKey: ['ticketBranchOptions'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('branches').select('id, name, code').order('name')
-      if (error) throw error
-      return (data ?? []) as BranchOption[]
+      const { data } = await apiFetch<{ data: BranchOption[] }>('/branches')
+      return data
     },
   })
 
@@ -69,13 +69,16 @@ export default function TicketsPage() {
 
   const createTicket = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.rpc('create_ticket_api', {
-        p_branch_code: branchesQuery.data?.find((item) => item.id === createBranchId)?.code ?? '',
-        p_note: createNote.trim(),
-        p_device_serial: createDeviceSerial || null,
+      const deviceId = createDevicesQuery.data?.find((item) => item.serial_number === createDeviceSerial)?.id ?? null
+      const { data } = await apiFetch<{ data: { id: string; ticket_number: string } }>('/tickets', {
+        method: 'POST',
+        body: JSON.stringify({
+          branch_id: createBranchId,
+          device_id: deviceId,
+          note: createNote.trim(),
+        }),
       })
-      if (error) throw new Error(error.message)
-      return data as CreatedTicket
+      return { ticket_id: data.id, ticket_number: data.ticket_number } as CreatedTicket
     },
     onSuccess: async (ticket) => {
       setCreatedTicket(ticket)
@@ -85,8 +88,8 @@ export default function TicketsPage() {
       setCreateNote('')
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['tickets'] }),
-        queryClient.invalidateQueries({ queryKey: ['dashboardCounts'] }),
-        queryClient.invalidateQueries({ queryKey: ['dashboardTickets'] }),
+        queryClient.invalidateQueries({ queryKey: ['dashboardStats'] }),
+        queryClient.invalidateQueries({ queryKey: ['dashboardBreakdown'] }),
       ])
     },
   })
@@ -100,50 +103,48 @@ export default function TicketsPage() {
   const ticketsQuery = useQuery({
     queryKey: ['tickets', filter, status, level, branch, device, from, to, search, sort, page],
     queryFn: async () => {
-      let deviceIds: string[] | null = null
-      if (device.trim()) {
-        const { data, error } = await supabase
-          .from('devices')
-          .select('id')
-          .ilike('serial_number', `%${device.trim()}%`)
-        if (error) throw error
-        deviceIds = (data ?? []).map((item) => item.id as string)
-        if (deviceIds.length === 0) return { items: [] as TicketRow[], total: 0 }
-      }
+      const params = new URLSearchParams({ page: String(page), limit: String(PAGE_SIZE) })
 
-      let query = supabase
-        .from('tickets')
-        .select('*, branches(name, code), devices(serial_number), si_user:profiles!tickets_si_user_id_fkey(name, email)', { count: 'exact' })
-
-      if (filter === 'open' || filter === 'today_open' || filter === 'escalated') query = query.eq('status', 'open')
-      if (filter === 'resolved' || filter === 'today_resolved') query = query.eq('status', 'resolved')
-      if (filter === 'escalated') query = query.gt('escalation_level', 0)
+      if (filter === 'open' || filter === 'today_open' || filter === 'escalated') params.set('status', 'open')
+      if (filter === 'resolved' || filter === 'today_resolved') params.set('status', 'resolved')
+      if (filter === 'escalated') params.set('escalated', 'true')
       if (filter === 'today_open' || filter === 'today_resolved') {
         const { start, next } = kolkataDayBounds(kolkataToday())
-        const column = filter === 'today_resolved' ? 'resolved_at' : 'created_at'
-        query = query.gte(column, start).lt(column, next)
+        if (filter === 'today_open') {
+          params.set('from', start)
+          params.set('to', next)
+        } else {
+          params.set('resolved_from', start)
+          params.set('resolved_to', next)
+        }
       }
-      if (status) query = query.eq('status', status)
-      if (level) query = query.eq('escalation_level', Number(level))
-      if (branch) query = query.eq('branch_id', branch)
-      if (deviceIds) query = query.in('device_id', deviceIds)
-      if (from) query = query.gte('created_at', kolkataDayBounds(from).start)
-      if (to) query = query.lt('created_at', kolkataDayBounds(to).next)
-      if (search.trim()) query = query.ilike('ticket_number', `%${search.trim()}%`)
+      if (status) params.set('status', status)
+      if (level) params.set('escalation_level', level)
+      if (branch) params.set('branch_id', branch)
+      if (device.trim()) params.set('device_serial', device.trim())
+      if (from) params.set('from', kolkataDayBounds(from).start)
+      if (to) params.set('to', kolkataDayBounds(to).next)
+      if (search.trim()) params.set('search', search.trim())
 
-      if (sort === 'created_asc') query = query.order('created_at', { ascending: true })
-      else if (sort === 'level_desc') query = query.order('escalation_level', { ascending: false }).order('created_at', { ascending: false })
-      else if (sort === 'ticket_asc') query = query.order('ticket_number', { ascending: true })
-      else query = query.order('created_at', { ascending: false })
+      if (sort === 'created_asc') {
+        params.set('sort', 'created_at')
+        params.set('order', 'asc')
+      } else if (sort === 'level_desc') {
+        params.set('sort', 'escalation_level')
+        params.set('order', 'desc')
+      } else if (sort === 'ticket_asc') {
+        params.set('sort', 'ticket_number')
+        params.set('order', 'asc')
+      } else {
+        params.set('sort', 'created_at')
+        params.set('order', 'desc')
+      }
 
-      const startIndex = (page - 1) * PAGE_SIZE
-      const { data, error, count } = await query.range(startIndex, startIndex + PAGE_SIZE - 1)
-      if (error) throw error
-      return { items: (data ?? []) as unknown as TicketRow[], total: count ?? 0 }
+      return apiFetch<{ data: TicketRow[]; total: number }>(`/tickets?${params.toString()}`)
     },
   })
 
-  const tickets = ticketsQuery.data?.items ?? []
+  const tickets = ticketsQuery.data?.data ?? []
   const total = ticketsQuery.data?.total ?? 0
   const totalPages = Math.ceil(total / PAGE_SIZE)
   const setPage = (nextPage: number) => updateParam('page', String(nextPage))

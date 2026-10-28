@@ -7,12 +7,13 @@ S-Watch 360 Desk is a React-based device-monitoring and service-ticketing dashbo
 - `src/App.tsx`, `src/main.tsx` — application routing and bootstrap; TanStack Query is provided at the root.
 - `src/pages/` — feature pages: dashboard, devices, tickets, insights, users, SI assignment, and auth.
 - `src/components/` — shared UI and layout, including protected route handling.
-- `src/hooks/useAuth.ts` — authentication hook.
+- `src/hooks/useAuth.ts` — authentication hook; signs in through the API and stores the returned JWT session.
 - `src/lib/supabase.ts` — Supabase client, configured from Vite environment variables.
+- `src/lib/api.ts` — client for the `api` Edge Function; attaches the current Supabase JWT.
 - `src/types/` — shared TypeScript types.
 - `src/index.css` — global styles and Tailwind CSS entry.
 - `supabase/migrations/` — database schema, policies, cron setup, and seed data.
-- `supabase/functions/` — `device-status`, `send-emails`, and `invite-user` Edge Functions.
+- `supabase/functions/` — `device-status`, `send-emails`, `invite-user`, and the `api` REST/JWT surface (`api/index.ts`, helpers in `api/lib.ts`).
 
 ## Setup and commands
 Prerequisites: Node.js 20+ and a hosted Supabase project.

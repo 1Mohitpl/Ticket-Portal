@@ -35,9 +35,11 @@ No Docker anywhere. Runs against a hosted Supabase project.
    npx supabase functions deploy device-status
    npx supabase functions deploy send-emails
    npx supabase functions deploy invite-user
+   npx supabase functions deploy api --no-verify-jwt
    ```
 6. Set Edge Function secrets (from Supabase dashboard → Edge Function → Settings):
    - `SENDGRID_API_KEY` (or your email provider key) for `send-emails`
+   - `TICKETS_API_KEY` (a long random string) for machine ticket ingestion through `api`
 7. Enable `pg_cron` and `pg_net` extensions in your Supabase project (SQL editor):
    ```sql
    create extension if not exists pg_cron;
@@ -59,6 +61,85 @@ curl -X POST https://<project>.supabase.co/functions/v1/device-status \
   -d '{"serial": "SN-0001", "status": "fault"}'
 ```
 Leave a device in `fault` for 24 hours (backdate `status_since` via SQL for testing) and the `generate_tickets()` cron job (every 5 minutes) creates a ticket.
+
+## Ticket API (Edge Function `api`)
+
+The `api` function is the REST surface for the portal and external systems. Reads require a
+Supabase JWT and are scoped by the existing RLS policies. Writes accept a Head Office JWT or an
+`x-api-key` header.
+
+Base URL: `https://<project-ref>.supabase.co/functions/v1/api`
+
+Deploy it with the platform JWT check disabled, because the function verifies tokens itself
+(`/auth/login` and `/health` must stay reachable without a token):
+
+```bash
+npx supabase functions deploy api --no-verify-jwt
+npx supabase secrets set TICKETS_API_KEY=<long-random-secret>
+```
+
+### Authentication (JWT)
+
+| Method | Path | Purpose |
+|---|---|---|
+| POST | `/auth/login` | `{ email, password }` → access token, refresh token, profile |
+| POST | `/auth/refresh` | `{ refresh_token }` → new access token |
+| GET | `/auth/me` | Current profile (Bearer) |
+| POST | `/auth/logout` | Revoke the session (Bearer) |
+
+Send the access token on every data request: `Authorization: Bearer <access_token>`. Tokens are
+normal Supabase Auth JWTs, so the same RLS policies that protect the app protect the API.
+
+### Data endpoints
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/tickets` | List, filter, search and paginate tickets |
+| GET | `/tickets/:id` | Ticket detail with activity timeline and email history |
+| GET | `/tickets/stats` | Total, open, resolved, escalated and today's counts |
+| GET | `/tickets/breakdown` | Scoped open/resolved/escalated counts per branch and device |
+| GET | `/branches` | Branches visible to the caller (filter dropdown) |
+| POST | `/tickets` | Receive a ticket (`x-api-key` or Head Office Bearer) |
+| GET | `/health` | Database health check (public) |
+
+`/tickets` query parameters: `status` (`open`/`resolved`, case-insensitive), `escalation_level`
+(0–3), `escalated` (`true` for any level above 0), `branch_id`, `device_id`, `device_serial`
+(partial serial match), `from` / `to` (ISO dates on `created_at`), `resolved_from` / `resolved_to`
+(ISO dates on `resolved_at`), `search` (ticket number, branch name or code, device serial), `page`
+(default 1), `limit` (default 20, max 100), `sort` (`created_at`, `updated_at`, `ticket_number`,
+`escalation_level`, `status`) and `order` (`asc`/`desc`). List responses return
+`{ data, page, limit, total, totalPages }`.
+
+```bash
+# 1. Get a JWT
+curl -X POST https://<project>.supabase.co/functions/v1/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"ho@swatch.example","password":"SWatch123!"}'
+
+# 2. Read scoped tickets
+curl "https://<project>.supabase.co/functions/v1/api/tickets?status=open&page=1&limit=20" \
+  -H "Authorization: Bearer <access_token>"
+
+# 3. Push a ticket from an external system
+curl -X POST https://<project>.supabase.co/functions/v1/api/tickets \
+  -H "x-api-key: <TICKETS_API_KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{"branch_id":"33333333-3333-3333-3333-333333333301","device_id":"d0000001-0000-0000-0000-000000000002","note":"ATM offline reported by monitoring"}'
+```
+
+`POST /tickets` requires `branch_id`; `device_id` must belong to that branch; `si_user_id` defaults
+to the branch's active SI. Ticket numbers come from the existing sequence.
+
+The React app uses this API for login/session, the dashboard, the ticket list and ticket detail.
+Ticket notes and resolution still go through the existing Supabase RPCs. Apply migration
+`0005_ticket_breakdown.sql` with the other migrations; the dashboard breakdown depends on it.
+
+Unit tests for the API helpers:
+
+```bash
+cd supabase/functions/api
+deno test
+```
 
 ## Demo accounts
 
